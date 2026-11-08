@@ -15,29 +15,47 @@ import {
   Heart,
   Briefcase,
   GraduationCap,
-  Sparkles
+  Sparkles,
+  Edit3,
+  X,
+  CheckCircle2
 } from 'lucide-react';
-import { Ministry, Member, AttendanceRecord, MinistryKey } from '../../types';
+import { Ministry, Member, AttendanceRecord, MinistryKey, User } from '../../types';
 import { ExportService } from '../../services/exportService';
 
 interface MinistriesViewProps {
+  currentUser?: User;
   ministries: Ministry[];
   members: Member[];
   attendanceRecords: AttendanceRecord[];
   onTakeAttendance: (ministryKey: string) => void;
+  onUpdateMinistry: (ministry: Ministry) => void;
 }
 
 export const MinistriesView: React.FC<MinistriesViewProps> = ({
+  currentUser,
   ministries,
   members,
   attendanceRecords,
-  onTakeAttendance
+  onTakeAttendance,
+  onUpdateMinistry
 }) => {
   const [activeMinistryKey, setActiveMinistryKey] = useState<MinistryKey>('hombres_verdad');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editSuccessMsg, setEditSuccessMsg] = useState<string | null>(null);
 
   const selectedMinistry = ministries.find(m => m.key === activeMinistryKey) || ministries[0];
   const ministryMembers = members.filter(m => m.ministryId === selectedMinistry.key);
   const ministryAttendance = attendanceRecords.filter(a => a.targetId === selectedMinistry.key);
+
+  // Form State for editing ministry & leader
+  const [leaderName, setLeaderName] = useState(selectedMinistry.leaderName);
+  const [leaderPhone, setLeaderPhone] = useState(selectedMinistry.leaderPhone);
+  const [leaderEmail, setLeaderEmail] = useState(selectedMinistry.leaderEmail);
+  const [meetingDay, setMeetingDay] = useState(selectedMinistry.meetingDay);
+  const [meetingSchedule, setMeetingSchedule] = useState(selectedMinistry.meetingSchedule);
+  const [targetAudience, setTargetAudience] = useState(selectedMinistry.targetAudience);
+  const [description, setDescription] = useState(selectedMinistry.description);
 
   const avgRate = ministryAttendance.length > 0
     ? Math.round(ministryAttendance.reduce((sum, a) => sum + a.attendanceRate, 0) / ministryAttendance.length)
@@ -51,6 +69,38 @@ export const MinistriesView: React.FC<MinistriesViewProps> = ({
       case 'profesionales': return Briefcase;
       case 'arca_noe': return Users;
     }
+  };
+
+  const openEdit = () => {
+    setLeaderName(selectedMinistry.leaderName);
+    setLeaderPhone(selectedMinistry.leaderPhone);
+    setLeaderEmail(selectedMinistry.leaderEmail);
+    setMeetingDay(selectedMinistry.meetingDay);
+    setMeetingSchedule(selectedMinistry.meetingSchedule);
+    setTargetAudience(selectedMinistry.targetAudience);
+    setDescription(selectedMinistry.description);
+    setShowEditModal(true);
+  };
+
+  const handleSaveMinistry = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!leaderName.trim()) return;
+
+    const updated: Ministry = {
+      ...selectedMinistry,
+      leaderName: leaderName.trim(),
+      leaderPhone: leaderPhone.trim(),
+      leaderEmail: leaderEmail.trim(),
+      meetingDay,
+      meetingSchedule: meetingSchedule.trim(),
+      targetAudience: targetAudience.trim(),
+      description: description.trim()
+    };
+
+    onUpdateMinistry(updated);
+    setShowEditModal(false);
+    setEditSuccessMsg(`¡Información y líder del ministerio "${updated.name}" actualizados correctamente!`);
+    setTimeout(() => setEditSuccessMsg(null), 3500);
   };
 
   const handleExportMinistryExcel = () => {
@@ -77,7 +127,7 @@ export const MinistriesView: React.FC<MinistriesViewProps> = ({
             </h1>
           </div>
           <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-            CENFOL - Iglesia del Dios Altísimo cuenta con 5 áreas estratégicas de pastoreo: Hombres de Verdad, Mujeres Sabias, Vida Estudiantil, Profesionales y Arca de Noé.
+            CENFOL - Iglesia del Dios Altísimo cuenta con 5 áreas estratégicas de pastoreo: Hombres de Verdad, Mujeres Sabias, Vida Estudiantil, Profesionales y Arca de Noé. Puedes editar los líderes y horarios en cualquier momento.
           </p>
         </div>
 
@@ -91,6 +141,13 @@ export const MinistriesView: React.FC<MinistriesViewProps> = ({
           </button>
         </div>
       </div>
+
+      {editSuccessMsg && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+          <span>{editSuccessMsg}</span>
+        </div>
+      )}
 
       {/* Ministry Selector Tabs */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -121,9 +178,14 @@ export const MinistriesView: React.FC<MinistriesViewProps> = ({
                 </h3>
               </div>
 
-              <span className={`text-[10px] font-semibold mt-3 ${isSelected ? 'text-indigo-600' : 'text-slate-400'}`}>
-                {min.meetingDay}
-              </span>
+              <div className="mt-3 flex items-center justify-between text-[10px]">
+                <span className={`font-semibold ${isSelected ? 'text-indigo-600' : 'text-slate-400'}`}>
+                  {min.meetingDay}
+                </span>
+                <span className="text-slate-500 font-medium truncate max-w-[80px]">
+                  {min.leaderName.split(' ')[0]}
+                </span>
+              </div>
             </button>
           );
         })}
@@ -146,7 +208,17 @@ export const MinistriesView: React.FC<MinistriesViewProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {/* Edit Leader and Ministry Button */}
+            <button
+              onClick={openEdit}
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 transition-colors"
+              title="Cambiar el nombre del líder, teléfono, correo u horario"
+            >
+              <Edit3 className="w-4 h-4 text-amber-300" />
+              <span>Editar Líder / Horarios</span>
+            </button>
+
             <button
               onClick={() => onTakeAttendance(selectedMinistry.key)}
               className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-xs transition-colors"
@@ -161,9 +233,18 @@ export const MinistriesView: React.FC<MinistriesViewProps> = ({
         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 border-b border-slate-100 bg-slate-50/50">
           
           <div className="space-y-1">
-            <span className="text-[10px] uppercase font-bold text-slate-400">Líder Encargado</span>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-bold text-slate-400">Líder Encargado</span>
+              <button 
+                onClick={openEdit}
+                className="text-[10px] text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1"
+              >
+                <Edit3 className="w-3 h-3" />
+                <span>Cambiar</span>
+              </button>
+            </div>
             <p className="text-sm font-extrabold text-slate-900">{selectedMinistry.leaderName}</p>
-            <div className="flex items-center gap-3 text-xs text-slate-600 pt-1">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600 pt-1">
               <span className="flex items-center gap-1">
                 <Phone className="w-3.5 h-3.5 text-emerald-600" />
                 {selectedMinistry.leaderPhone}
@@ -177,6 +258,7 @@ export const MinistriesView: React.FC<MinistriesViewProps> = ({
                 WhatsApp
               </a>
             </div>
+            <p className="text-[11px] text-slate-500 pt-0.5">{selectedMinistry.leaderEmail}</p>
           </div>
 
           <div className="space-y-1">
@@ -258,6 +340,155 @@ export const MinistriesView: React.FC<MinistriesViewProps> = ({
         </div>
 
       </div>
+
+      {/* Modal: Edit Ministry and Leader Information */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden">
+            
+            <div className="bg-slate-900 p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Edit3 className="w-5 h-5 text-amber-300" />
+                <div>
+                  <h3 className="text-base font-extrabold text-white">
+                    Editar Líder e Información de Ministerio
+                  </h3>
+                  <p className="text-xs text-slate-300">{selectedMinistry.name}</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowEditModal(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveMinistry} className="p-6 space-y-4 text-xs">
+              
+              <div className="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100">
+                <label className="block font-bold text-indigo-900 mb-1">
+                  Nombre Completo del Líder Encargado *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={leaderName}
+                  onChange={(e) => setLeaderName(e.target.value)}
+                  placeholder="Ej: Diác. Carlos Mendoza"
+                  className="w-full p-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-600 font-semibold text-slate-900"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Teléfono / WhatsApp del Líder *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={leaderPhone}
+                    onChange={(e) => setLeaderPhone(e.target.value)}
+                    placeholder="+57 312 000 0000"
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Correo Electrónico del Líder
+                  </label>
+                  <input
+                    type="email"
+                    value={leaderEmail}
+                    onChange={(e) => setLeaderEmail(e.target.value)}
+                    placeholder="lider@cenfoliglesia.org"
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Día Principal de Reunión *
+                  </label>
+                  <select
+                    value={meetingDay}
+                    onChange={(e) => setMeetingDay(e.target.value)}
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  >
+                    <option value="Lunes">Lunes</option>
+                    <option value="Martes">Martes</option>
+                    <option value="Miércoles">Miércoles</option>
+                    <option value="Jueves">Jueves</option>
+                    <option value="Viernes">Viernes</option>
+                    <option value="Sábado">Sábado</option>
+                    <option value="Domingo">Domingo</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Horario y Frecuencia
+                  </label>
+                  <input
+                    type="text"
+                    value={meetingSchedule}
+                    onChange={(e) => setMeetingSchedule(e.target.value)}
+                    placeholder="Ej: Sábados - 7:00 AM (Desayuno y Palabra)"
+                    className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Población Objetivo
+                </label>
+                <input
+                  type="text"
+                  value={targetAudience}
+                  onChange={(e) => setTargetAudience(e.target.value)}
+                  placeholder="Ej: Hombres mayores de 18 años"
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Descripción y Enfoque Ministerial
+                </label>
+                <textarea
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-600"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 border border-slate-300 rounded-lg font-semibold text-slate-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-bold shadow-xs"
+                >
+                  Guardar Cambios del Líder
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

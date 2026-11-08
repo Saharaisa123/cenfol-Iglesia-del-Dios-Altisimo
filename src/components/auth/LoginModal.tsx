@@ -32,8 +32,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       return;
     }
 
-    if (!password || password.length < 4) {
-      setError('Por favor ingresa una contraseña válida (ej: admin123 o lider123)');
+    const expectedPass = found.password || (found.role === 'admin' ? 'admin123' : found.role === 'miembro' ? 'miembro123' : 'lider123');
+    if (password !== expectedPass) {
+      setError(`Contraseña incorrecta para ${found.name}. Por favor verifica o usa la contraseña registrada.`);
       return;
     }
 
@@ -41,9 +42,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     onClose();
   };
 
-  const handleQuickSelect = (u: User, defaultPass: string) => {
+  const handleQuickSelect = (u: User) => {
+    const pass = u.password || (u.role === 'admin' ? 'admin123' : u.role === 'miembro' ? 'miembro123' : 'lider123');
     setEmail(u.email);
-    setPassword(defaultPass);
+    setPassword(pass);
     setError(null);
     onLoginSuccess(u);
     onClose();
@@ -146,7 +148,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
             <div className="space-y-2">
               {availableUsers.map(u => {
-                const defaultPass = u.role === 'admin' ? 'admin123' : u.role === 'miembro' ? 'miembro123' : 'lider123';
+                const currentPass = u.password || (u.role === 'admin' ? 'admin123' : u.role === 'miembro' ? 'miembro123' : 'lider123');
                 return (
                   <div
                     key={u.id}
@@ -154,7 +156,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   >
                     <div className="min-w-0">
                       <p className="font-bold text-slate-900 truncate">{u.name}</p>
-                      <p className="text-[11px] text-slate-500 font-mono truncate">{u.email} • pass: <span className="text-indigo-600 font-semibold">{defaultPass}</span></p>
+                      <p className="text-[11px] text-slate-500 font-mono truncate">{u.email} • pass: <span className="text-indigo-600 font-bold">{currentPass}</span></p>
                       <p className="text-[10px] text-indigo-700 font-medium capitalize mt-0.5">
                         {u.role === 'admin' ? '★ Acceso Total (Descarga Masiva)' : u.role === 'lider_ministerio' ? 'Líder Ministerio' : u.role === 'lider_edificacion' ? 'Líder G. Edificación' : 'Miembro General'}
                       </p>
@@ -162,7 +164,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
                     <button
                       type="button"
-                      onClick={() => handleQuickSelect(u, defaultPass)}
+                      onClick={() => handleQuickSelect(u)}
                       className="shrink-0 bg-white hover:bg-indigo-600 hover:text-white border border-slate-300 hover:border-indigo-600 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-xs"
                     >
                       Entrar

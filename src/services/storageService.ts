@@ -55,6 +55,37 @@ export class StorageService {
     this.setItem(STORAGE_KEYS.CURRENT_USER, user);
   }
 
+  static saveUser(user: User): void {
+    const list = this.getUsers();
+    const index = list.findIndex(u => u.id === user.id);
+    if (index >= 0) {
+      list[index] = user;
+    } else {
+      list.push(user);
+    }
+    this.setItem(STORAGE_KEYS.USERS, list);
+
+    // If current user was updated, also update current user
+    const current = this.getCurrentUser();
+    if (current.id === user.id) {
+      this.setCurrentUser(user);
+    }
+  }
+
+  static updateUserPassword(userId: string, newPass: string): void {
+    const list = this.getUsers();
+    const found = list.find(u => u.id === userId);
+    if (found) {
+      found.password = newPass;
+      this.setItem(STORAGE_KEYS.USERS, list);
+      const current = this.getCurrentUser();
+      if (current.id === userId) {
+        current.password = newPass;
+        this.setCurrentUser(current);
+      }
+    }
+  }
+
   // --- Ministries ---
   static getMinistries(): Ministry[] {
     return this.getItem<Ministry[]>(STORAGE_KEYS.MINISTRIES, MINISTRIES_DATA);

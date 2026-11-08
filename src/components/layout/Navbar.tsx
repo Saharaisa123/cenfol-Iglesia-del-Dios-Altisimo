@@ -10,7 +10,8 @@ import {
   Cake, 
   Calendar, 
   ShieldCheck,
-  Smartphone
+  Smartphone,
+  Lock
 } from 'lucide-react';
 import { User, Member, ChurchEvent } from '../../types';
 
@@ -24,6 +25,7 @@ interface NavbarProps {
   events: ChurchEvent[];
   onOpenQuickExport: () => void;
   onNavigate: (tab: string) => void;
+  onOpenPasswordModal: (tab?: 'my_password' | 'manage_all') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -35,7 +37,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   members,
   events,
   onOpenQuickExport,
-  onNavigate
+  onNavigate,
+  onOpenPasswordModal
 }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
@@ -249,7 +252,31 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </div>
                   </div>
 
-                  <div className="px-2 pt-1">
+                  <div className="px-2 pt-1 border-t border-slate-100 space-y-1">
+                    <button
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        onOpenPasswordModal('my_password');
+                      }}
+                      className="w-full text-left px-3 py-2 text-xs text-indigo-700 hover:bg-indigo-50 rounded-lg flex items-center gap-2 font-semibold"
+                    >
+                      <Lock className="w-4 h-4 text-indigo-600" />
+                      <span>Cambiar Mi Contraseña</span>
+                    </button>
+
+                    {currentUser.role === 'admin' && (
+                      <button
+                        onClick={() => {
+                          setShowUserMenu(false);
+                          onOpenPasswordModal('manage_all');
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs text-amber-800 hover:bg-amber-50 rounded-lg flex items-center gap-2 font-semibold"
+                      >
+                        <UserCheck className="w-4 h-4 text-amber-600" />
+                        <span>Gestionar Usuarios y Contraseñas</span>
+                      </button>
+                    )}
+
                     <button
                       onClick={() => {
                         setShowUserMenu(false);
@@ -258,7 +285,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 rounded-lg flex items-center gap-2"
                     >
                       <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                      <span>Iniciar con otro Usuario y Contraseña</span>
+                      <span>Iniciar con otro Usuario</span>
                     </button>
                     <button
                       onClick={() => {

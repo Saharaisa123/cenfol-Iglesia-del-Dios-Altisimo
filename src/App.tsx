@@ -33,6 +33,7 @@ import { TrainingView } from './components/training/TrainingView';
 import { NotificationsView } from './components/notifications/NotificationsView';
 import { EventsView } from './components/events/EventsView';
 import { ReportsView } from './components/reports/ReportsView';
+import { PasswordAndUsersModal } from './components/users/PasswordAndUsersModal';
 
 export default function App() {
   // Global persistent states
@@ -53,6 +54,8 @@ export default function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isTakingAttendanceOpen, setIsTakingAttendanceOpen] = useState(false);
   const [isNewMemberOpen, setIsNewMemberOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [passwordModalInitialTab, setPasswordModalInitialTab] = useState<'my_password' | 'manage_all'>('my_password');
 
   // Sync current user change to storage
   const handleSwitchUser = (user: User) => {
@@ -62,6 +65,38 @@ export default function App() {
 
   const handleLogout = () => {
     setIsLoginModalOpen(true);
+  };
+
+  // --- Handlers for User Credentials & Passwords ---
+  const handleUpdateUserPassword = (userId: string, newPassword: string) => {
+    StorageService.updateUserPassword(userId, newPassword);
+    setAvailableUsers(StorageService.getUsers());
+    setCurrentUser(StorageService.getCurrentUser());
+  };
+
+  const handleSaveUser = (user: User) => {
+    StorageService.saveUser(user);
+    setAvailableUsers(StorageService.getUsers());
+    setCurrentUser(StorageService.getCurrentUser());
+  };
+
+  // --- Handlers for Ministry & Leader Editing ---
+  const handleUpdateMinistry = (updatedMinistry: Ministry) => {
+    StorageService.updateMinistry(updatedMinistry);
+    setMinistries(StorageService.getMinistries());
+
+    // If an existing leader user is assigned to this ministry, sync their display name
+    const currentUsers = StorageService.getUsers();
+    const userToUpdate = currentUsers.find(u => u.assignedMinistryId === updatedMinistry.key);
+    if (userToUpdate && userToUpdate.name !== updatedMinistry.leaderName) {
+      userToUpdate.name = updatedMinistry.leaderName;
+      StorageService.saveUser(userToUpdate);
+      setAvailableUsers(StorageService.getUsers());
+      const active = StorageService.getCurrentUser();
+      if (active.id === userToUpdate.id) {
+        setCurrentUser(userToUpdate);
+      }
+    }
   };
 
   // --- Handlers for Member CRUD ---
@@ -162,6 +197,10 @@ export default function App() {
           );
         }}
         onNavigate={(tab) => setCurrentTab(tab)}
+        onOpenPasswordModal={(tab) => {
+          setPasswordModalInitialTab(tab || 'my_password');
+          setIsPasswordModalOpen(true);
+        }}
       />
 
       {/* Main Layout Area: Sidebar + Content */}
@@ -227,10 +266,12 @@ export default function App() {
 
           {currentTab === 'ministries' && (
             <MinistriesView
+              currentUser={currentUser}
               ministries={ministries}
               members={members}
               attendanceRecords={attendanceRecords}
               onTakeAttendance={handleTakeAttendanceForMinistryOrGroup}
+              onUpdateMinistry={handleUpdateMinistry}
             />
           )}
 
@@ -294,6 +335,18 @@ export default function App() {
         onClose={() => setIsLoginModalOpen(false)}
         onLoginSuccess={handleSwitchUser}
         availableUsers={availableUsers}
+      />
+
+      {/* Password & User Management Modal */}
+      <PasswordAndUsersModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        currentUser={currentUser}
+        availableUsers={availableUsers}
+        ministries={ministries}
+        onUpdateUserPassword={handleUpdateUserPassword}
+        onSaveUser={handleSaveUser}
+        initialTab={passwordModalInitialTab}
       />
 
     </div>
