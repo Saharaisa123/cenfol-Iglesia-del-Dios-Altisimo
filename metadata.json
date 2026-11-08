@@ -1,0 +1,6 @@
+{
+  "name": "Iglesia del Dios Altísimo - CENFOL Gestión",
+  "description": "Sistema integral de gestión eclesial, seguimiento de asistencia de ministerios, grupos de edificación, base de datos de miembros, estadísticas y reportes en PDF y Excel para la Iglesia del Dios Altísimo - CENFOL.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
